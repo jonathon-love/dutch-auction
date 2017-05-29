@@ -68,7 +68,8 @@ for (let u of props) {
     trials.push({ prop, qty, startPrice, endPrice, oppBid, price, winner });
 }
 
-const dataPath = path.join(__dirname, 'data', new Date().toISOString() + '.csv');
+let fileName = new Date().toISOString().replace(/[: /]/g, '') + '.csv';
+const dataPath = path.join(__dirname, 'data', fileName);
 saveData(trials, dataPath);
 
 function saveData(trials, path) {
@@ -262,7 +263,7 @@ let ip = determineIP();
 http.listen(3033, ip, function(){
 
     let address = http.address();
-    let url = util.format('    https://%s:%s', address.address, address.port);
+    let url = util.format('    http://%s:%s/index.html', address.address, address.port);
 
     console.log();
     console.log('*** DUTCH AUCTION ***');
