@@ -1,0 +1,285 @@
+priceMax<!DOCTYPE html>
+<html>
+<head>
+<meta charset="utf-8" />
+<title>Dutch Auction</title>
+<style>
+
+* {
+    box-sizing: border-box;
+}
+
+body {
+    font-family: -apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,Helvetica,Arial,sans-serif,"Apple Color Emoji","Segoe UI Emoji","Segoe UI Symbol" ;
+    color: white ;
+    cursor: default ;
+    margin: 24px ;
+}
+
+h1 {
+    font-size: 160% ;
+    color: #3E6DA9 ;
+    margin-bottom: 12px ;
+    white-space: nowrap ;
+}
+
+h2 {
+    font-size: 130% ;
+    margin-bottom: 12px ;
+    color: #3E6DA9 ;
+}
+
+h3, h4, h5 {
+    font-size: 110% ;
+    margin-bottom: 12px ;
+}
+
+table {
+    border-spacing: 0 ;
+}
+
+#main {
+    position: relative ;
+    width: 640px ;
+    height: 480px ;
+    margin-left: auto ;
+    margin-right: auto ;
+    background-color: gold ;
+}
+
+#goods-box {
+    position: absolute ;
+    background-color: blue ;
+    height: 400px ;
+    width: 120px ;
+    left: 20px ;
+    top: 20px ;
+}
+
+#goods-accum {
+    position: absolute;
+    width: 25% ;
+    height: 50% ;
+    bottom: 0px ;
+    background-color: rgba(255, 255, 255, 0.5) ;
+}
+
+.score {
+    position: absolute ;
+    background-color: red ;
+    height: 30px ;
+    width: 90px ;
+    line-height: 30px ;
+    text-align: center;
+    color: white ;
+}
+
+#goods-score {
+    bottom: 20px ;
+    left: 20px ;
+}
+
+#money-score {
+    bottom: 20px ;
+    right: 20px ;
+}
+
+#price-box {
+    position: absolute ;
+    background-color: orange ;
+    height: 80px ;
+    width: 400px ;
+    right: 60px ;
+    top: 60px ;
+}
+
+.price-accum {
+    position: absolute;
+    height: 95% ;
+    width: 50% ;
+    top: 0 ;
+}
+
+#price-accum {
+    background-color: darkorange ;
+}
+
+#price-accum[data-state='won']{
+    background-color: green ;
+}
+
+#price-accum[data-state='lost']{
+    background-color: red ;
+}
+
+#price-score {
+    position: absolute ;
+    width: 100% ;
+    height: 100% ;
+    top: 30px ;
+    font-size: 120% ;
+    text-align: center;
+}
+
+#item-box {
+    position: absolute;
+    width: 400px ;
+    height: 240px ;
+    top: 170px ;
+    right: 60px ;
+    border: 2px solid orange ;
+}
+
+#item {
+    width: 60% ;
+    height: 60% ;
+    background-color: blue ;
+    margin: auto ;
+    text-align: center;
+    padding-top: 50px ;
+}
+
+#info-box {
+    position: absolute ;
+    right: 12px ;
+    top: 12px ;
+    color: darkorange ;
+    font-size: 60% ;
+}
+
+</style>
+<script src="jquery-3.2.1.min.js" type="text/javascript"></script>
+<script src="socket.io/socket.io.js"></script>
+<script>
+
+let socket = io();
+let name;
+let state;
+let money;
+
+let conf = { };
+
+socket.on('init', event => {
+    name = event.name;
+    conf.maxGoods = event.maxGoods;
+    conf.nDPs = event.nDPs;
+    conf.nPriceSteps = event.nPriceSteps;
+    conf.priceStepDuration = event.priceStepDuration;
+    $('#info-name').text(event.name);
+    $('#info-address').text(event.address);
+    $('#money-score').text('$' + event.money.toFixed(conf.nDPs));
+    $('#goods-score').text('0');
+});
+
+socket.on('event', (stateReceived) => {
+
+    state = stateReceived;
+    let userState = state.users[name];
+    money = userState.money;
+    $('#money-score').text('$' + userState.money.toFixed(conf.nDPs));
+    $('#goods-accum').css('height', '' + (100 * userState.goods / conf.maxGoods) + '%');
+    $('#goods-score').text('' + userState.goods.toFixed(0));
+
+    if (state.trial.status === 'ready') {
+        this.$priceScore.text('$' + state.trial.startPrice.toFixed(conf.nDPs));
+        this.$priceAccum.css('width', '100%');
+        this.$priceAccum.attr('data-state', '');
+        let lw = Math.sqrt(state.trial.prop);
+        this.$item.text(state.trial.qty);
+        this.$item.css('width',  '' + parseInt(100 * lw) + '%');
+        this.$item.css('height', '' + parseInt(100 * lw) + '%');
+    }
+    else if (state.trial.status === 'running') {
+
+        let priceStep = 0;
+        let price = state.trial.startPrice;
+        let priceDec = (state.trial.startPrice - state.trial.endPrice) / conf.nPriceSteps;
+        let duration = conf.priceStepDuration * (conf.nPriceSteps + 1);
+
+        this.$priceAccum.css('width', '0');
+        this.$priceAccum.css('transition', '' + duration + 'ms width linear');
+
+        let intervalId = setInterval(() => {
+
+            if (state.trial.status !== 'running') {
+                clearInterval(intervalId);
+                return;
+            }
+
+            let price = (state.trial.startPrice - (priceDec * priceStep));
+            this.$priceScore.text('$' + price.toFixed(conf.nDPs));
+            state.trial.price = price;
+
+            priceStep++;
+            if (priceStep === conf.nPriceSteps + 1) {
+                clearInterval(intervalId);
+                this.$priceAccum.css('transition', '');
+            }
+        }, conf.priceStepDuration);
+    }
+    else if (state.trial.status === 'won') {
+
+        let proportion = (state.trial.price - state.trial.endPrice) / (state.trial.startPrice - state.trial.endPrice);
+        let percent = 100 * proportion;
+
+        if (state.trial.winner === name)
+            this.$priceAccum.attr('data-state', 'won');
+        else
+            this.$priceAccum.attr('data-state', 'lost');
+
+        this.$priceScore.text('$' + state.trial.price.toFixed(conf.nDPs));
+
+        this.$priceAccum.css('transition', '');
+        this.$priceAccum.css('width', '' + percent + '%');
+    }
+});
+
+const $window = $(window);
+
+$(document).ready(() => {
+
+    this.$goodsAccum = $('#goods-accum');
+    this.$priceAccum = $('#price-accum');
+    this.$priceScore = $('#price-score');
+    this.$item = $('#item');
+});
+
+$window.on('keydown', (event) => {
+    if ( ! state)
+        return;
+    if ( ! state.trial)
+        return;
+    if (state.trial.status !== 'running')
+        return
+    if (event.key !== ' ')
+        return;
+    if (state.trial.price > money)
+        return;
+
+    socket.emit('bid', { name: name, price: state.trial.price })
+});
+
+
+</script>
+</head>
+<body>
+    <div id="main">
+        <div id="info-box">
+            <span id="info-name"></span>
+            <span id="info-address"></span>
+        </div>
+        <div id="item-box">
+            <div id="item"></div>
+        </div>
+        <div id="goods-box">
+            <div id="goods-accum" class="accum"></div>
+        </div>
+        <div id="price-box">
+            <div id="price-accum" class="price-accum"></div>
+            <div id="price-score" class="">$<span>1400</span></div>
+        </div>
+        <div id="goods-score" class="score"><span>20</span>%</div>
+        <div id="money-score" class="score">$<span>1400</span></div>
+    </div>
+</body>
+</html>
