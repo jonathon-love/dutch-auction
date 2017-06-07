@@ -21,4 +21,3 @@ popd
 endlocal
 
 node index.js
-sleep

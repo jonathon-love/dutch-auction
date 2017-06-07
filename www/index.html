@@ -56,12 +56,26 @@ table {
     top: 20px ;
 }
 
-#goods-accum {
+#goods-accum,
+.goods-accum {
     position: absolute;
     width: 25% ;
-    height: 50% ;
+    height: 0px ;
     bottom: 0px ;
     background-color: rgba(255, 255, 255, 0.5) ;
+    transition: 0.5s height ;
+}
+
+.goods-accum:nth-child(2) {
+    left: 25% ;
+}
+
+.goods-accum:nth-child(3) {
+    left: 50% ;
+}
+
+.goods-accum:nth-child(4) {
+    left: 75% ;
 }
 
 .score {
@@ -147,6 +161,33 @@ table {
     font-size: 60% ;
 }
 
+#progress-box {
+    position: absolute;
+    width: 300px ;
+    bottom: 20px ;
+    height: 30px ;
+    left: 50% ;
+    margin-left: -150px ;
+    background-color: orange ;
+}
+
+.progress-accum {
+    position: absolute;
+    background-color: blue ;
+    height: 50% ;
+    transition: 500ms width linear;
+}
+
+#progress-accum-trials {
+    top: 0;
+    left: 0 ;
+}
+
+#progress-accum-blocks {
+    top: 50%;
+    left: 0 ;
+}
+
 </style>
 <script src="jquery-3.2.1.min.js" type="text/javascript"></script>
 <script src="socket.io/socket.io.js"></script>
@@ -165,6 +206,8 @@ socket.on('init', event => {
     conf.nDPs = event.nDPs;
     conf.nPriceSteps = event.nPriceSteps;
     conf.priceStepDuration = event.priceStepDuration;
+    conf.nTrials = event.nTrials;
+    conf.nBlocks = event.nBlocks;
     $('#info-name').text(event.name);
     $('#info-address').text(event.address);
     $('#money-score').text('$' + event.money.toFixed(conf.nDPs));
@@ -177,11 +220,50 @@ socket.on('event', (stateReceived) => {
     let userState = state.users[name];
     money = userState.money;
     $('#money-score').text('$' + userState.money.toFixed(conf.nDPs));
-    $('#goods-accum').css('height', '' + (100 * userState.goods / conf.maxGoods) + '%');
     $('#goods-score').text('' + userState.goods.toFixed(0));
 
-    if (state.trial.status === 'ready') {
+    this.$goodsAccum.css('height', '' + (100 * userState.goods / conf.maxGoods) + '%');
+
+    if (state.trial) {
+        this.$progressAccumTrials.css('width', '' + (100 * (state.trial.trialNo + 1) / conf.nTrials) + '%')
+        this.$progressAccumBlocks.css('width', '' + (100 * (state.trial.blockNo + 1) / conf.nBlocks) + '%')
+    }
+
+
+    if (conf.fogOfWarehouse !== true) {
+        let userNames = Object.keys(state.users);
+        let i = 0;
+        for (let userName of userNames) {
+            if (userName === name)
+                continue;
+            let user = state.users[userName];
+            $(this.$goodsOppAccum[i]).css('height', '' + (100 * user.goods / conf.maxGoods) + '%');
+            i++;
+        }
+    }
+
+    if (state.status === 'paused') {
+        this.$priceScore.text('PAUSED');
+        this.$priceAccum.css('width', '100%');
+        this.$priceAccum.attr('data-state', '');
+    }
+    else if (state.status === 'break') {
+        this.$priceScore.text('Block complete! Time for a break');
+        this.$priceAccum.css('width', '100%');
+        this.$priceAccum.attr('data-state', '');
+    }
+    else if (state.status === 'starting') {
+        this.$priceAccum.css('transition', '');
+        this.$priceAccum.css('width', '100%');
+        setTimeout(() => {
+            this.$priceScore.text('Starting ...');
+            this.$priceAccum.css('width', '0');
+            this.$priceAccum.css('transition', '' + 5000 + 'ms width linear');
+        }, 0);
+    }
+    else if (state.trial.status === 'ready') {
         this.$priceScore.text('$' + state.trial.startPrice.toFixed(conf.nDPs));
+        this.$priceAccum.css('transition', '');
         this.$priceAccum.css('width', '100%');
         this.$priceAccum.attr('data-state', '');
         let lw = Math.sqrt(state.trial.prop);
@@ -239,9 +321,13 @@ const $window = $(window);
 $(document).ready(() => {
 
     this.$goodsAccum = $('#goods-accum');
+    this.$goodsOppAccum = $('.goods-accum');
     this.$priceAccum = $('#price-accum');
     this.$priceScore = $('#price-score');
     this.$item = $('#item');
+
+    this.$progressAccumTrials = $('#progress-accum-trials');
+    this.$progressAccumBlocks = $('#progress-accum-blocks');
 });
 
 $window.on('keydown', (event) => {
@@ -273,13 +359,20 @@ $window.on('keydown', (event) => {
         </div>
         <div id="goods-box">
             <div id="goods-accum" class="accum"></div>
+            <div class="goods-accum" class="accum"></div>
+            <div class="goods-accum" class="accum"></div>
+            <div class="goods-accum" class="accum"></div>
         </div>
         <div id="price-box">
             <div id="price-accum" class="price-accum"></div>
-            <div id="price-score" class="">$<span>1400</span></div>
+            <div id="price-score" class=""></div>
         </div>
-        <div id="goods-score" class="score"><span>20</span>%</div>
-        <div id="money-score" class="score">$<span>1400</span></div>
+        <div id="progress-box">
+            <div id="progress-accum-trials" class="progress-accum"></div>
+            <div id="progress-accum-blocks" class="progress-accum"></div>
+        </div>
+        <div id="goods-score" class="score"></div>
+        <div id="money-score" class="score"></div>
     </div>
 </body>
 </html>
