@@ -51,8 +51,8 @@ table {
     position: absolute ;
     background-color: blue ;
     height: 400px ;
-    width: 120px ;
-    left: 20px ;
+    width: 200px ;
+    left: 120px ;
     top: 20px ;
 }
 
@@ -64,6 +64,16 @@ table {
     bottom: 0px ;
     background-color: rgba(255, 255, 255, 0.5) ;
     transition: 0.5s height ;
+}
+
+#goods-hypo {
+    position: absolute ;
+    height: 50px ;
+    width: 25% ;
+    bottom: 0 ;
+    left: 0;
+    height: 0 ;
+    background-color: red ;
 }
 
 .goods-accum:nth-child(2) {
@@ -101,17 +111,17 @@ table {
 #price-box {
     position: absolute ;
     background-color: orange ;
-    height: 80px ;
-    width: 400px ;
-    right: 60px ;
-    top: 60px ;
+    height: 400px ;
+    width: 80px ;
+    right: 160px ;
+    top: 20px ;
 }
 
 .price-accum {
     position: absolute;
-    height: 95% ;
-    width: 50% ;
-    top: 0 ;
+    height: 50% ;
+    width: 100% ;
+    bottom: 0 ;
 }
 
 #price-accum {
@@ -136,6 +146,7 @@ table {
 }
 
 #item-box {
+    display: none ; /* old functionality */
     position: absolute;
     width: 400px ;
     height: 240px ;
@@ -164,28 +175,18 @@ table {
 #progress-box {
     position: absolute;
     width: 300px ;
-    bottom: 20px ;
+    bottom: 16px ;
     height: 30px ;
     left: 50% ;
     margin-left: -150px ;
-    background-color: orange ;
+    color: black ;
+    /* background-color: orange ; */
 }
 
 .progress-accum {
-    position: absolute;
-    background-color: blue ;
-    height: 50% ;
-    transition: 500ms width linear;
-}
-
-#progress-accum-trials {
-    top: 0;
-    left: 0 ;
-}
-
-#progress-accum-blocks {
-    top: 50%;
-    left: 0 ;
+    display: inline-block ;
+    margin-left: 12px ;
+    margin-right: 12px ;
 }
 
 </style>
@@ -223,10 +224,13 @@ socket.on('event', (stateReceived) => {
     $('#goods-score').text('' + userState.goods.toFixed(0));
 
     this.$goodsAccum.css('height', '' + (100 * userState.goods / conf.maxGoods) + '%');
+    this.$goodsHypo.css('bottom',  '' + (100 * userState.goods / conf.maxGoods) + '%');
 
     if (state.trial) {
-        this.$progressAccumTrials.css('width', '' + (100 * (state.trial.trialNo + 1) / conf.nTrials) + '%')
-        this.$progressAccumBlocks.css('width', '' + (100 * (state.trial.blockNo + 1) / conf.nBlocks) + '%')
+        this.$progressAccumTrials.text('' + (state.trial.trialNo + 1) + ' / ' + conf.nTrials)
+        this.$progressAccumBlocks.text('' + (state.trial.blockNo + 1) + ' / ' + conf.nBlocks)
+        //this.$progressAccumTrials.css('width', '' + (100 * (state.trial.trialNo + 1) / conf.nTrials) + '%')
+        //this.$progressAccumBlocks.css('width', '' + (100 * (state.trial.blockNo + 1) / conf.nBlocks) + '%')
     }
 
 
@@ -244,28 +248,29 @@ socket.on('event', (stateReceived) => {
 
     if (state.status === 'paused') {
         this.$priceScore.text('PAUSED');
-        this.$priceAccum.css('width', '100%');
+        this.$priceAccum.css('height', '100%');
         this.$priceAccum.attr('data-state', '');
     }
     else if (state.status === 'break') {
         this.$priceScore.text('Block complete! Time for a break');
-        this.$priceAccum.css('width', '100%');
+        this.$priceAccum.css('height', '100%');
         this.$priceAccum.attr('data-state', '');
     }
     else if (state.status === 'starting') {
         this.$priceAccum.css('transition', '');
-        this.$priceAccum.css('width', '100%');
+        this.$priceAccum.css('height', '100%');
         setTimeout(() => {
             this.$priceScore.text('Starting ...');
-            this.$priceAccum.css('width', '0');
-            this.$priceAccum.css('transition', '' + 5000 + 'ms width linear');
+            this.$priceAccum.css('height', '0');
+            this.$priceAccum.css('transition', '' + 5000 + 'ms height linear');
         }, 0);
     }
     else if (state.trial.status === 'ready') {
         this.$priceScore.text('$' + state.trial.startPrice.toFixed(conf.nDPs));
         this.$priceAccum.css('transition', '');
-        this.$priceAccum.css('width', '100%');
+        this.$priceAccum.css('height', '100%');
         this.$priceAccum.attr('data-state', '');
+        this.$goodsHypo.css('height', '' + parseInt(100 * state.trial.qty / conf.maxGoods) + '%');
         let lw = Math.sqrt(state.trial.prop);
         this.$item.text(state.trial.qty);
         this.$item.css('width',  '' + parseInt(100 * lw) + '%');
@@ -278,8 +283,8 @@ socket.on('event', (stateReceived) => {
         let priceDec = (state.trial.startPrice - state.trial.endPrice) / conf.nPriceSteps;
         let duration = conf.priceStepDuration * (conf.nPriceSteps + 1);
 
-        this.$priceAccum.css('width', '0');
-        this.$priceAccum.css('transition', '' + duration + 'ms width linear');
+        this.$priceAccum.css('height', '0');
+        this.$priceAccum.css('transition', '' + duration + 'ms height linear');
 
         let intervalId = setInterval(() => {
 
@@ -312,7 +317,8 @@ socket.on('event', (stateReceived) => {
         this.$priceScore.text('$' + state.trial.price.toFixed(conf.nDPs));
 
         this.$priceAccum.css('transition', '');
-        this.$priceAccum.css('width', '' + percent + '%');
+        this.$priceAccum.css('height', '' + percent + '%');
+        this.$goodsHypo.css('height', '0');
     }
 });
 
@@ -321,6 +327,7 @@ const $window = $(window);
 $(document).ready(() => {
 
     this.$goodsAccum = $('#goods-accum');
+    this.$goodsHypo = $('#goods-hypo');
     this.$goodsOppAccum = $('.goods-accum');
     this.$priceAccum = $('#price-accum');
     this.$priceScore = $('#price-score');
@@ -362,14 +369,15 @@ $window.on('keydown', (event) => {
             <div class="goods-accum" class="accum"></div>
             <div class="goods-accum" class="accum"></div>
             <div class="goods-accum" class="accum"></div>
+            <div id="goods-hypo" class="accum"></div>
         </div>
         <div id="price-box">
             <div id="price-accum" class="price-accum"></div>
             <div id="price-score" class=""></div>
         </div>
         <div id="progress-box">
-            <div id="progress-accum-trials" class="progress-accum"></div>
-            <div id="progress-accum-blocks" class="progress-accum"></div>
+            Trial <div id="progress-accum-trials" class="progress-accum">0 / 0</div>
+            Block <div id="progress-accum-blocks" class="progress-accum">0 / 0</div>
         </div>
         <div id="goods-score" class="score"></div>
         <div id="money-score" class="score"></div>

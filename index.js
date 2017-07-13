@@ -251,6 +251,11 @@ function bid(event) {
                 session.status = 'break'
                 io.emit('event', session);
             }, conf.delayAfter);
+
+            for (let name in session.users) {
+                session.users[name].goods = 0;
+                session.users[name].money = conf.money;
+            }
         }
         else if (session.status === 'running') {
             setTimeout(run, conf.delayAfter);
@@ -261,7 +266,7 @@ function bid(event) {
 }
 
 app.use(serveStatic(path.join(__dirname, 'www'),
-    {'index': ['default.html', 'default.htm']}));
+    {'index': ['index.html']}));
 
 io.on('connection', function(socket) {
 
