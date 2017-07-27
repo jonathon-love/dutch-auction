@@ -7,7 +7,7 @@ const conf = {
     maxGoods: 2000, // 'warehouse' capacity
 
     nBlocks: 5,
-    nTrials: 5,
+    nTrials: 10,
     qtyMax: 600,    // only used for sizing the goods
     priceStepDuration: 50,
     nPriceSteps: 80,  // auction duration = steps * duration
@@ -179,6 +179,12 @@ const opp = {
 function start() {
     notifyEvent('starting')
     session.status = 'starting';
+
+    for (let name in session.users) {
+        session.users[name].goods = 0;
+        session.users[name].money = conf.money;
+    }
+
     io.emit('event', session);
     setTimeout(() => {
         session.status = 'running';
@@ -196,6 +202,7 @@ function run() {
     session.trial = trials[session.trialNo];
     session.trial.status = 'ready';
     session.trialNo++;
+
     io.emit('event', session);
 
     setTimeout(() => {
@@ -251,11 +258,6 @@ function bid(event) {
                 session.status = 'break'
                 io.emit('event', session);
             }, conf.delayAfter);
-
-            for (let name in session.users) {
-                session.users[name].goods = 0;
-                session.users[name].money = conf.money;
-            }
         }
         else if (session.status === 'running') {
             setTimeout(run, conf.delayAfter);
@@ -310,7 +312,7 @@ let ip = determineIP();
 http.listen(3033, ip, function(){
 
     let address = http.address();
-    let url = util.format('    http://%s:%s/index.html', address.address, address.port);
+    let url = util.format('    http://%s:%s', address.address, address.port);
 
     console.log();
     console.log('*** DUTCH AUCTION ***');
