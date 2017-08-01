@@ -205,10 +205,17 @@ strong {
     background-color: orange ;
     border: 2px solid darkorange ;
     z-index: 10 ;
+    text-align: center ;
 }
 
-#feedback * {
+#feedback table {
+    margin: auto ;
     text-align: center;
+}
+
+#feedback td,
+#feedback th {
+    padding: 4px 8px ;
 }
 
 </style>
@@ -247,9 +254,6 @@ socket.on('event', (stateReceived) => {
     $('#money-score').text('$' + userState.money.toFixed(conf.nDPs));
     $('#goods-score').text('' + userState.goods.toFixed(0));
 
-    this.$feedbackGoods.text('' + userState.goods.toFixed(0));
-    this.$feedbackMoney.text('$' + userState.money.toFixed(conf.nDPs));
-
     if (userState.goods >= conf.maxGoods) {
         this.$feedbackSuccess.show();
         this.$feedbackFailure.hide();
@@ -278,6 +282,17 @@ socket.on('event', (stateReceived) => {
                 continue;
             let user = state.users[userName];
             $(this.$goodsOppAccum[i]).css('height', '' + (100 * user.goods / conf.maxGoods) + '%');
+            i++;
+        }
+
+        i = 0;
+        for (let userName of userNames) {
+            let user = state.users[userName];
+            if (userName === name)
+                userName += ' (You)';
+            $(this.$feedbackPlayers[i]).text(userName);
+            $(this.$feedbackGoods[i]).text('' + user.goods.toFixed(0));
+            $(this.$feedbackMoney[i]).text('$' + user.money.toFixed(conf.nDPs));
             i++;
         }
     }
@@ -372,13 +387,15 @@ $(document).ready(() => {
     this.$item = $('#item');
 
     this.$feedback = $('#feedback');
-    this.$feedbackGoods = $('#feedback-goods');
-    this.$feedbackMoney = $('#feedback-money');
     this.$feedbackSuccess = $('#feedback-success');
     this.$feedbackFailure = $('#feedback-failure');
 
     this.$progressAccumTrials = $('#progress-accum-trials');
     this.$progressAccumBlocks = $('#progress-accum-blocks');
+
+    this.$feedbackPlayers = $('#feedback tbody tr td:nth-child(1)');
+    this.$feedbackGoods = $('#feedback tbody tr td:nth-child(2)');
+    this.$feedbackMoney = $('#feedback tbody tr td:nth-child(3)');
 });
 
 $window.on('keydown', (event) => {
@@ -431,8 +448,27 @@ $window.on('keydown', (event) => {
             <h2>Block complete</h2>
             <p id="feedback-success">You successfully filled your warehouse</p>
             <p id="feedback-failure">You did <strong>not</strong> fill your warehouse</p>
-            <p>You purchased <span id="feedback-goods">X</span> quantity of goods</p>
-            <p>You had <span id="feedback-money">X</span> left over</p>
+            <table>
+                <thead>
+                    <tr>
+                        <th>Player</th><th>Warehouse Qty</th><th>Funds Remaining</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    <tr>
+                        <td>A</td><td>B</td><td>C</td>
+                    </tr>
+                    <tr>
+                        <td>A</td><td>B</td><td>C</td>
+                    </tr>
+                    <tr>
+                        <td>A</td><td>B</td><td>C</td>
+                    </tr>
+                    <tr>
+                        <td>A</td><td>B</td><td>C</td>
+                    </tr>
+                </tbody>
+            </table>
         </div>
     </div>
 </body>
